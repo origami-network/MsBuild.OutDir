@@ -1,0 +1,16 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup Condition="'$(OutDir)' != '$(OutputPath)'">
+    <PrepareForRunDependsOn>
+      $(PrepareForRunDependsOn);
+      _MsBuildOutDirCopy
+    </PrepareForRunDependsOn>
+    
+    <!-- TODO: Set defaults -->
+  </PropertyGroup>
+
+  <Target Name="_MsBuildOutDirCopy">
+    <Message Text="TODO: Copy project files like WebApplication project."
+             Importance="high" />
+  </Target>
+</Project>

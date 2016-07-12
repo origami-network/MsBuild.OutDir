@@ -1,0 +1,18 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
+  <metadata>
+    <id>MsBuild.OutDir</id>
+    <version>0.0.0</version>
+    <authors>Bartłomiej Dubas</authors>
+    <owners>Bartłomiej Dubas</owners>
+    <licenseUrl>http://www.opensource.org/licenses/MIT</licenseUrl>
+    <projectUrl>https://github.com/origami-network/MsBuild.OutDir/</projectUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>Targets file for control publishing project to OutDir.</description>
+    <tags>Origami MsBuild OutDir Publish</tags>
+    <dependencies />
+  </metadata>
+  <files>
+    <file src="build\MsBuild.OutDir.targets" target="build" />
+  </files>
+</package>
