@@ -1,16 +1,170 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
-<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <PropertyGroup Condition="'$(OutDir)' != '$(OutputPath)'">
-    <PrepareForRunDependsOn>
-      $(PrepareForRunDependsOn);
-      _MsBuildOutDirCopy
-    </PrepareForRunDependsOn>
+﻿<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <!--
+    This target place the project output and content in dedicated location
+    based on the `OutDir` property.
     
-    <!-- TODO: Set defaults -->
+    NOTE: It is based on `Microsoft.WebApplication.targets` and try to fallow
+    its conventions as much as possible.
+  -->
+
+  <!--
+    Allow to overwrite default values of properties, like:
+      * ProjectCategory
+      * Disable_CopyProject
+      * DisableLinkInCopyProject
+      * DisableBinInCopyProject
+      * ProjectOutputDir
+  -->
+  <Import Project="$(MSBuildProjectDirectory)\Properties\$(MSBuildThisFileName).props" Condition="Exists('$(MSBuildProjectDirectory)\Properties\$(MSBuildThisFileName).props')"/>
+
+  <!--
+    ProjectCategory
+      
+    Allow to group output projects in categories. The defaults are:
+      * Websites - for all web projects (see `Microsoft.WebApplication.targets`)
+      * Libraries - for projects that produces dll files
+      * Applications - for project that produces exe files
+  -->
+  <PropertyGroup Condition="'$(ProjectCategory)' == ''">
+    <ProjectCategory>Unknown</ProjectCategory>
+    <ProjectCategory Condition="'$(OutputType)' == 'Library'">Libraries</ProjectCategory>
+    <ProjectCategory Condition="'$(OutputType)' == 'Exe'">Applications</ProjectCategory>
   </PropertyGroup>
 
-  <Target Name="_MsBuildOutDirCopy">
-    <Message Text="TODO: Copy project files like WebApplication project."
-             Importance="high" />
+  <!--
+    Disable_CopyProject
+
+    Disable functionality of this targets files. It can be use for test purposes
+    while the same efect is with removing this extension. 
+  -->
+  <PropertyGroup Condition="'$(Disable_CopyProject)' == ''">
+    <Disable_CopyProject>False</Disable_CopyProject>
+  </PropertyGroup>
+
+  <!--
+    DisableLinkInCopyProject
+
+    When set to True all linked files marked as `Content` will not be copied.  
+  -->
+  <PropertyGroup Condition="'$(DisableLinkInCopyProject)' == ''">
+    <DisableLinkInCopyProject>False</DisableLinkInCopyProject>
+  </PropertyGroup>
+
+  <!--
+    DisableBinInCopyProject
+
+    When set to True only files marked as `Content` will be copied.  
+  -->
+  <PropertyGroup Condition="'$(DisableBinInCopyProject)' == ''">
+    <DisableBinInCopyProject>False</DisableBinInCopyProject>
+  </PropertyGroup>
+
+  <!--
+    ProjectOutputDir
+
+    Location where the outputs and content of project will be copied.
+    By default it is directory of Project Category with `_Published` prefix and Project Name.  
+  -->
+  <PropertyGroup Condition="'$(ProjectOutputDir)' == ''">
+    <ProjectOutputDir>$(MSBuildProjectDirectory)</ProjectOutputDir>
+    <ProjectOutputDir Condition="'$(OutDir)' != '$(OutputPath)'">$(OutDir)_Published$(ProjectCategory)\$(MSBuildProjectName)</ProjectOutputDir>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <PrepareForRunDependsOn Condition="!$(Disable_CopyProject)">
+      $(PrepareForRunDependsOn);
+      _CopyProject;
+    </PrepareForRunDependsOn>
+  </PropertyGroup>
+
+  <Target Name="_CopyProject" Condition="'$(OutDir)' != '$(OutputPath)'">
+
+    <!-- Log tasks -->
+    <Message Text="Copying Project Files for $(MSBuildProjectName) to $(ProjectOutputDir)." />
+
+    <!-- Create the _Published*\project\bin folder -->
+    <MakeDir Directories="$(ProjectOutputDir)\bin" Condition="!$(DisableBinInCopyProject) and !Exists('$(ProjectOutputDir)\bin')"/>
+    <MakeDir Directories="$(ProjectOutputDir)" Condition="$(DisableBinInCopyProject)"/>
+
+    <!-- Copy build outputs to _Published*\project\bin folder -->
+    <Copy SourceFiles="@(IntermediateAssembly)" Condition="!$(DisableBinInCopyProject)"
+          DestinationFolder="$(ProjectOutputDir)\bin"
+          SkipUnchangedFiles="true"
+          Retries="$(CopyRetryCount)"
+          RetryDelayMilliseconds="$(CopyRetryDelayMilliseconds)"/>
+    <Copy SourceFiles="@(AddModules)" Condition="!$(DisableBinInCopyProject)"
+          DestinationFolder="$(ProjectOutputDir)\bin"
+          SkipUnchangedFiles="true"
+          Retries="$(CopyRetryCount)"
+          RetryDelayMilliseconds="$(CopyRetryDelayMilliseconds)"/>
+    <Copy SourceFiles="$(IntermediateOutputPath)$(_SGenDllName)" Condition="!$(DisableBinInCopyProject) and '$(_SGenDllCreated)'=='true'"
+          DestinationFolder="$(ProjectOutputDir)\%(Content.SubFolder)%(Content.RecursiveDir)"
+          SkipUnchangedFiles="true"
+          Retries="$(CopyRetryCount)"
+          RetryDelayMilliseconds="$(CopyRetryDelayMilliseconds)"/>
+    <Copy SourceFiles="$(IntermediateOutputPath)$(TargetName).pdb" Condition="!$(DisableBinInCopyProject) and '$(_DebugSymbolsProduced)'=='true'"
+          DestinationFolder="$(ProjectOutputDir)\bin"
+          SkipUnchangedFiles="true"
+          Retries="$(CopyRetryCount)"
+          RetryDelayMilliseconds="$(CopyRetryDelayMilliseconds)"/>
+    <Copy SourceFiles="@(DocFileItem)" Condition="!$(DisableBinInCopyProject) and '$(_DocumentationFileProduced)'=='true'"
+          DestinationFolder="$(ProjectOutputDir)\bin"
+          SkipUnchangedFiles="true"
+          Retries="$(CopyRetryCount)"
+          RetryDelayMilliseconds="$(CopyRetryDelayMilliseconds)"/>
+    <Copy SourceFiles="@(IntermediateSatelliteAssembliesWithTargetPath)" Condition="!$(DisableBinInCopyProject)"
+          DestinationFiles="@(IntermediateSatelliteAssembliesWithTargetPath->'$(ProjectOutputDir)\bin\%(Culture)\$(TargetName).resources.dll')"
+          SkipUnchangedFiles="true"
+          Retries="$(CopyRetryCount)"
+          RetryDelayMilliseconds="$(CopyRetryDelayMilliseconds)"/>
+    <Copy SourceFiles="@(ReferenceComWrappersToCopyLocal); @(ResolvedIsolatedComModules); @(_DeploymentLooseManifestFile); @(NativeReferenceFile)" Condition="!$(DisableBinInCopyProject)"
+          DestinationFolder="$(ProjectOutputDir)\bin"
+          SkipUnchangedFiles="true"
+          Retries="$(CopyRetryCount)"
+          RetryDelayMilliseconds="$(CopyRetryDelayMilliseconds)"/>
+
+    <!-- copy any referenced assemblies to _Published*\project\bin folder -->
+    <Copy SourceFiles="@(ReferenceCopyLocalPaths)"
+          DestinationFiles="@(ReferenceCopyLocalPaths->'$(ProjectOutputDir)\bin\%(DestinationSubDirectory)%(Filename)%(Extension)')" Condition="!$(DisableBinInCopyProject)"
+          SkipUnchangedFiles="true"
+          Retries="$(CopyRetryCount)"
+          RetryDelayMilliseconds="$(CopyRetryDelayMilliseconds)"/>
+
+    <!-- Copy content files recursively to _Published*\project\ folder -->
+    <Copy SourceFiles="@(Content)" Condition="'%(Content.Link)' == ''"
+          DestinationFolder="$(ProjectOutputDir)\%(Content.RelativeDir)"
+          SkipUnchangedFiles="true"
+          Retries="$(CopyRetryCount)"
+          RetryDelayMilliseconds="$(CopyRetryDelayMilliseconds)" />
+    <Copy SourceFiles="@(Content)" Condition="!$(DisableLinkInCopyProject) And '%(Content.Link)' != ''"
+          DestinationFiles="$(ProjectOutputDir)\%(Content.Link)"
+          SkipUnchangedFiles="true"
+          Retries="$(CopyRetryCount)"
+          RetryDelayMilliseconds="$(CopyRetryDelayMilliseconds)"/>
+
+    <!-- Copy items that have been marked to be copied to the bin folder -->
+    <Copy SourceFiles="@(_SourceItemsToCopyToOutputDirectory)" Condition="!$(DisableBinInCopyProject)"
+          DestinationFolder="$(ProjectOutputDir)\bin"
+          SkipUnchangedFiles="true"
+          Retries="$(CopyRetryCount)"
+          RetryDelayMilliseconds="$(CopyRetryDelayMilliseconds)"/>
+    <Copy SourceFiles="@(_SourceItemsToCopyToOutputDirectoryAlways)"
+          DestinationFolder="$(ProjectOutputDir)\bin"
+          SkipUnchangedFiles="false"
+          Retries="$(CopyRetryCount)"
+          RetryDelayMilliseconds="$(CopyRetryDelayMilliseconds)"/>
+
+    <!-- Copy items that need to be bin deployed to the bin folder -->
+    <Copy SourceFiles="@(_binDeployableAssemblies)" Condition="!$(DisableBinInCopyProject)"
+          DestinationFolder="$(ProjectOutputDir)\bin\%(_binDeployableAssemblies.DestinationRelPath)"
+          SkipUnchangedFiles="true"
+          Retries="$(CopyRetryCount)"
+          RetryDelayMilliseconds="$(CopyRetryDelayMilliseconds)"/>
+
+    <!-- Copy config files to _Published*\project\bin folder -->
+    <Copy SourceFiles="$(OutDir)$(TargetFileName).config" Condition="!$(DisableBinInCopyProject) and Exists('$(OutDir)$(TargetFileName).config')"
+          DestinationFolder="$(ProjectOutputDir)\bin"
+          SkipUnchangedFiles="true"/>
+
   </Target>
 </Project>

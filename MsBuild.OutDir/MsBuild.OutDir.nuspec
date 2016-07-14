@@ -2,17 +2,25 @@
 <package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
   <metadata>
     <id>MsBuild.OutDir</id>
-    <version>0.0.0</version>
+    <version>0.0.1</version>
     <authors>Bartłomiej Dubas</authors>
     <owners>Bartłomiej Dubas</owners>
     <licenseUrl>http://www.opensource.org/licenses/MIT</licenseUrl>
     <projectUrl>https://github.com/origami-network/MsBuild.OutDir/</projectUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
-    <description>Targets file for control publishing project to OutDir.</description>
+    <description>
+      MsBuild targets that allow control publishing projects to dedicated folder through `OutDir` property.
+
+      The intention is to help extract requred files from build process to dedicated folder,
+      by reporducing Web Application project type behaviour.
+
+      In Visual Studio IDE it works transparently and do not change default behaviour.
+    </description>
     <tags>Origami MsBuild OutDir Publish</tags>
     <dependencies />
   </metadata>
   <files>
-    <file src="build\MsBuild.OutDir.targets" target="build" />
+    <file src="build\*.targets" target="build" />
+    <file src="build\*.props" target="build" />
   </files>
 </package>
